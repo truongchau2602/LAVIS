@@ -98,6 +98,31 @@ class BlipITM(BlipBase):
 
             sim = image_feat @ text_feat.t()
             return sim
+
+    def encode_image(self, image):
+        image_embeds = self.visual_encoder(image)
+        image_feat = F.normalize(self.vision_proj(image_embeds[:,0,:]),dim=-1)
+        return image_feat
+
+    def encode_text(self, caption, img_device):
+        text = self.tokenizer(
+              caption,
+              padding="longest",
+              truncation=True,
+              max_length=self.max_txt_len,
+              return_tensors="pt",
+          ).to(img_device)
+        text_output = self.text_encoder(
+              text.input_ids,
+              attention_mask=text.attention_mask,
+              return_dict=True,
+              mode="text")
+        text_feat = F.normalize(
+                self.text_proj(text_output.last_hidden_state[:, 0, :]), dim=-1
+          )                       
+        return text_feat 
+    
+
     def itm_rank(self, image_embeds, image_atts, encoder_input_ids, match_head='itm'):
         # breakpoint()
         encoder_input_ids = encoder_input_ids.clone()
